@@ -6,7 +6,7 @@ use thiserror::Error;
 
 #[async_trait]
 pub trait Engine {
-    async fn process_transaction(&mut self, transaction: Transaction);
+    async fn process_transaction(&mut self, transaction: Transaction) -> Result<(), EngineError>;
     async fn get_clients(
         &self,
     ) -> Result<BoxStream<'static, Result<Client, EngineError>>, EngineError>;

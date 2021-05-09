@@ -2,22 +2,28 @@ use bigdecimal::BigDecimal;
 
 // owned primitives
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct ClientId(u16);
+pub struct ClientId(pub(crate) u16);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct TransactionId(u32);
+pub struct TransactionId(pub(crate) u32);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AmountInMinorUnits(BigDecimal);
+pub struct AmountInMinorUnits(pub(crate) BigDecimal);
+
+impl From<u64> for AmountInMinorUnits {
+    fn from(amount: u64) -> Self {
+        AmountInMinorUnits(BigDecimal::from(amount))
+    }
+}
 
 // high level objects
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Client {
     pub(crate) id: ClientId,
-    available: AmountInMinorUnits,
-    held: AmountInMinorUnits,
-    total: AmountInMinorUnits,
-    locked: bool,
+    pub(crate) available: AmountInMinorUnits,
+    pub(crate) held: AmountInMinorUnits,
+    pub(crate) total: AmountInMinorUnits,
+    pub(crate) locked: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -39,32 +45,32 @@ pub enum TransactionStatus {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Deposit {
-    client: ClientId,
-    tx: TransactionId,
-    amount: AmountInMinorUnits,
+    pub(crate) client: ClientId,
+    pub(crate) tx: TransactionId,
+    pub(crate) amount: AmountInMinorUnits,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Withdrawal {
-    client: ClientId,
-    tx: TransactionId,
-    amount: AmountInMinorUnits,
+    pub(crate) client: ClientId,
+    pub(crate) tx: TransactionId,
+    pub(crate) amount: AmountInMinorUnits,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Dispute {
-    client: ClientId,
-    tx: TransactionId,
+    pub(crate) client: ClientId,
+    pub(crate) tx: TransactionId,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Resolve {
-    client: ClientId,
-    tx: TransactionId,
+    pub(crate) client: ClientId,
+    pub(crate) tx: TransactionId,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Chargeback {
-    client: ClientId,
-    tx: TransactionId,
+    pub(crate) client: ClientId,
+    pub(crate) tx: TransactionId,
 }
