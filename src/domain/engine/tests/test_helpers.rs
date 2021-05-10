@@ -1,8 +1,10 @@
 use crate::domain::engine::TransactionEngine;
-use crate::domain::model::{Client, ClientId, Transaction, TransactionId, TransactionStatus};
+use crate::domain::model::{
+    AmountInMinorUnits, Client, ClientId, TransactionId, TransactionStatus,
+};
 use crate::domain::ports::{
-    ClientRepository, ClientRepositoryErrors, Engine, EngineConfig, EngineError,
-    TransactionRepositoryErrors, TransactionsRepository,
+    ClientRepository, ClientRepositoryErrors, Engine, EngineConfig, TransactionRepositoryErrors,
+    TransactionsRepository,
 };
 use async_trait::async_trait;
 use futures::prelude::stream::BoxStream;
@@ -13,7 +15,16 @@ use std::sync::{Arc, RwLock};
 
 pub const TEST_CLIENT_ID: ClientId = ClientId(1);
 pub const TEST_TRANSACTION_ID_1: TransactionId = TransactionId(1);
-pub const TEST_TRANSACTION_ID_2: TransactionId = TransactionId(2);
+
+pub fn test_client(amount: AmountInMinorUnits) -> Client {
+    Client {
+        id: TEST_CLIENT_ID,
+        available: amount.clone(),
+        held: AmountInMinorUnits::from(0),
+        total: amount,
+        locked: false,
+    }
+}
 
 #[derive(Default)]
 pub struct TestEngineDeps;
@@ -24,9 +35,9 @@ impl EngineConfig for TestEngineDeps {
 }
 
 pub struct TestContext {
-    engine: TransactionEngine<TestEngineDeps>,
-    client_repo: FakeClientRepository,
-    transaction_repo: FakeTransactionRepository,
+    pub engine: TransactionEngine<TestEngineDeps>,
+    pub client_repo: FakeClientRepository,
+    pub transaction_repo: FakeTransactionRepository,
 }
 
 impl TestContext {
@@ -46,13 +57,6 @@ impl TestContext {
         }
     }
 
-    pub async fn process_transaction(
-        &mut self,
-        transaction: Transaction,
-    ) -> Result<(), EngineError> {
-        self.engine.process_transaction(transaction).await
-    }
-
     pub async fn get_clients(&self) -> Vec<Client> {
         self.engine
             .get_clients()
@@ -61,6 +65,83 @@ impl TestContext {
             .try_collect()
             .await
             .unwrap()
+    }
+
+    pub async fn with_deposit(&mut self, amount: AmountInMinorUnits, held: AmountInMinorUnits) {
+        self.client_repo
+            .update_client(Client {
+                id: TEST_CLIENT_ID,
+                available: amount.clone(),
+                held: held.clone(),
+                total: amount.clone() + held,
+                locked: false,
+            })
+            .await
+            .unwrap();
+
+        self.transaction_repo
+            .store_transaction_value(TEST_TRANSACTION_ID_1, amount.clone())
+            .await
+            .unwrap();
+        self.transaction_repo
+            .store_transaction_status(TEST_TRANSACTION_ID_1, TransactionStatus::Processed)
+            .await
+            .unwrap();
+    }
+
+    /// sets up the test context with a pre-existing deposit & dispute,
+    /// useful for testing resolve & chargeback transactions
+    pub async fn with_disputed_amount(
+        &mut self,
+        available_amount: AmountInMinorUnits,
+        disputed_amount: AmountInMinorUnits,
+    ) {
+        self.client_repo
+            .update_client(Client {
+                id: TEST_CLIENT_ID,
+                available: available_amount.clone(),
+                held: disputed_amount.clone(),
+                total: available_amount + disputed_amount.clone(),
+                locked: false,
+            })
+            .await
+            .unwrap();
+
+        self.transaction_repo
+            .store_transaction_value(TEST_TRANSACTION_ID_1, disputed_amount.clone())
+            .await
+            .unwrap();
+        self.transaction_repo
+            .store_transaction_status(TEST_TRANSACTION_ID_1, TransactionStatus::Disputed)
+            .await
+            .unwrap();
+    }
+
+    pub async fn with_chargeback(
+        &mut self,
+        chargeback_amount: AmountInMinorUnits,
+        available_amount: AmountInMinorUnits,
+        held_amount: AmountInMinorUnits,
+    ) {
+        self.client_repo
+            .update_client(Client {
+                id: TEST_CLIENT_ID,
+                available: available_amount.clone(),
+                held: held_amount.clone(),
+                total: available_amount + held_amount.clone(),
+                locked: true,
+            })
+            .await
+            .unwrap();
+
+        self.transaction_repo
+            .store_transaction_value(TEST_TRANSACTION_ID_1, chargeback_amount.clone())
+            .await
+            .unwrap();
+        self.transaction_repo
+            .store_transaction_status(TEST_TRANSACTION_ID_1, TransactionStatus::ChargedBack)
+            .await
+            .unwrap();
     }
 }
 
@@ -97,7 +178,7 @@ impl FakeInnerClientRepository {
     }
 
     fn update_client(&mut self, client: Client) -> Result<(), ClientRepositoryErrors> {
-        let _ = self.clients.insert(client.id, client).unwrap();
+        let _ = self.clients.insert(client.id, client);
         Ok(())
     }
 }
@@ -107,7 +188,8 @@ pub struct FakeTransactionRepository(Arc<RwLock<FakeInnerTransactionRepository>>
 
 #[derive(Default)]
 struct FakeInnerTransactionRepository {
-    transactions: HashMap<TransactionId, TransactionStatus>,
+    transaction_status: HashMap<TransactionId, TransactionStatus>,
+    transaction_value: HashMap<TransactionId, AmountInMinorUnits>,
 }
 
 #[async_trait]
@@ -132,6 +214,24 @@ impl TransactionsRepository for FakeTransactionRepository {
             .unwrap()
             .store_transaction_status(transaction_id, transaction_status)
     }
+
+    async fn get_transaction_value(
+        &self,
+        transaction_id: &TransactionId,
+    ) -> Result<AmountInMinorUnits, TransactionRepositoryErrors> {
+        self.0.read().unwrap().get_transaction_value(transaction_id)
+    }
+
+    async fn store_transaction_value(
+        &mut self,
+        transaction_id: TransactionId,
+        amount: AmountInMinorUnits,
+    ) -> Result<(), TransactionRepositoryErrors> {
+        self.0
+            .write()
+            .unwrap()
+            .store_transaction_value(transaction_id, amount)
+    }
 }
 
 impl FakeInnerTransactionRepository {
@@ -139,7 +239,7 @@ impl FakeInnerTransactionRepository {
         &self,
         transaction_id: &TransactionId,
     ) -> Result<TransactionStatus, TransactionRepositoryErrors> {
-        self.transactions
+        self.transaction_status
             .get(transaction_id)
             .cloned()
             .ok_or_else(|| TransactionRepositoryErrors::TransactionNotFound(transaction_id.clone()))
@@ -150,7 +250,28 @@ impl FakeInnerTransactionRepository {
         transaction_id: TransactionId,
         transaction_status: TransactionStatus,
     ) -> Result<(), TransactionRepositoryErrors> {
-        let _ = self.transactions.insert(transaction_id, transaction_status);
+        let _ = self
+            .transaction_status
+            .insert(transaction_id, transaction_status);
         Ok(())
+    }
+
+    fn store_transaction_value(
+        &mut self,
+        transaction_id: TransactionId,
+        amount: AmountInMinorUnits,
+    ) -> Result<(), TransactionRepositoryErrors> {
+        let _ = self.transaction_value.insert(transaction_id, amount);
+        Ok(())
+    }
+
+    fn get_transaction_value(
+        &self,
+        transaction_id: &TransactionId,
+    ) -> Result<AmountInMinorUnits, TransactionRepositoryErrors> {
+        self.transaction_value
+            .get(transaction_id)
+            .cloned()
+            .ok_or_else(|| TransactionRepositoryErrors::TransactionNotFound(*transaction_id))
     }
 }

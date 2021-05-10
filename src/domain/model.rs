@@ -1,4 +1,5 @@
 use bigdecimal::BigDecimal;
+use std::ops::{Add, Sub};
 
 // owned primitives
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -8,11 +9,27 @@ pub struct ClientId(pub(crate) u16);
 pub struct TransactionId(pub(crate) u32);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AmountInMinorUnits(pub(crate) BigDecimal);
+pub struct AmountInMinorUnits(BigDecimal);
 
 impl From<u64> for AmountInMinorUnits {
     fn from(amount: u64) -> Self {
         AmountInMinorUnits(BigDecimal::from(amount))
+    }
+}
+
+impl Add for AmountInMinorUnits {
+    type Output = AmountInMinorUnits;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        AmountInMinorUnits(self.0.add(rhs.0))
+    }
+}
+
+impl Sub for AmountInMinorUnits {
+    type Output = AmountInMinorUnits;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        AmountInMinorUnits(self.0.sub(rhs.0))
     }
 }
 

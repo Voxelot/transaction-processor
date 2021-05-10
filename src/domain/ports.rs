@@ -1,7 +1,8 @@
-use crate::domain::model::{Client, Transaction, TransactionId, TransactionStatus};
+use crate::domain::model::{
+    AmountInMinorUnits, Client, Transaction, TransactionId, TransactionStatus,
+};
 use async_trait::async_trait;
 use futures::prelude::stream::BoxStream;
-use futures::Stream;
 use thiserror::Error;
 
 #[async_trait]
@@ -51,6 +52,17 @@ pub trait TransactionsRepository {
         &mut self,
         transaction_id: TransactionId,
         transaction_status: TransactionStatus,
+    ) -> Result<(), TransactionRepositoryErrors>;
+
+    async fn get_transaction_value(
+        &self,
+        transaction_id: &TransactionId,
+    ) -> Result<AmountInMinorUnits, TransactionRepositoryErrors>;
+
+    async fn store_transaction_value(
+        &mut self,
+        transaction_id: TransactionId,
+        amount: AmountInMinorUnits,
     ) -> Result<(), TransactionRepositoryErrors>;
 }
 

@@ -2,8 +2,6 @@ use crate::domain::model::{Client, Transaction};
 use crate::domain::ports::{Engine, EngineConfig, EngineError};
 use async_trait::async_trait;
 use futures::prelude::stream::BoxStream;
-use futures::Stream;
-use std::marker::PhantomData;
 
 #[derive(Default, Debug)]
 pub struct TransactionEngine<T: EngineConfig> {
