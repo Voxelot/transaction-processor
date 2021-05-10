@@ -108,7 +108,28 @@ where
     }
 
     async fn process_resolve(&mut self, resolve: Resolve) -> EngineResult {
-        todo!()
+        let state = self
+            .transactions
+            .get_transaction_status(&resolve.tx)
+            .await?;
+        let amount = self.transactions.get_transaction_value(&resolve.tx).await?;
+
+        // only process resolution if transaction is in a disputed state
+        if state == TransactionStatus::Disputed {
+            self.transactions
+                .store_transaction_status(resolve.tx, TransactionStatus::Resolved)
+                .await?;
+            self.clients
+                .update(
+                    &resolve.client,
+                    ClientUpdate::Resolve {
+                        available_increase: amount.clone(),
+                        held_decrease: amount.clone(),
+                    },
+                )
+                .await?;
+        }
+        Ok(())
     }
 
     async fn process_chargeback(&mut self, chargeback: Chargeback) -> EngineResult {
