@@ -82,7 +82,29 @@ where
     }
 
     async fn process_dispute(&mut self, dispute: Dispute) -> EngineResult {
-        todo!()
+        let status = self
+            .transactions
+            .get_transaction_status(&dispute.tx)
+            .await?;
+
+        let value = self.transactions.get_transaction_value(&dispute.tx).await?;
+
+        // Only handle dispute if transaction is in the base processed state
+        if status == TransactionStatus::Processed {
+            self.transactions
+                .store_transaction_status(dispute.tx, TransactionStatus::Disputed)
+                .await?;
+            self.clients
+                .update(
+                    &dispute.client,
+                    ClientUpdate::Dispute {
+                        available_decrease: value.clone(),
+                        held_increase: value,
+                    },
+                )
+                .await?;
+        }
+        Ok(())
     }
 
     async fn process_resolve(&mut self, resolve: Resolve) -> EngineResult {
