@@ -47,10 +47,7 @@ async fn chargeback_reduces_total_funds_by_disputed_amount() {
 
     // check results
     let clients = ctx.get_clients().await;
-    assert_eq!(
-        clients[0].total,
-        starting_available_amount - disputed_amount
-    );
+    assert_eq!(clients[0].total, starting_available_amount);
 }
 
 #[tokio::test]

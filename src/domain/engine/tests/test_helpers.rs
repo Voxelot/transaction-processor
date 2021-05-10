@@ -215,7 +215,14 @@ impl ClientRepository for FakeClientRepository {
                 client.available = client.available.clone() + available_increase;
                 client.held = client.held.clone() - held_decrease;
             }
-            ClientUpdate::Chargeback { .. } => {}
+            ClientUpdate::Chargeback {
+                held_decrease,
+                total_decrease,
+            } => {
+                client.held = client.held.clone() - held_decrease;
+                client.total = client.total.clone() - total_decrease;
+                client.locked = true;
+            }
         }
         Ok(())
     }

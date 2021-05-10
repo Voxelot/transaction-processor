@@ -87,10 +87,9 @@ where
             .get_transaction_status(&dispute.tx)
             .await?;
 
-        let value = self.transactions.get_transaction_value(&dispute.tx).await?;
-
         // Only handle dispute if transaction is in the base processed state
         if status == TransactionStatus::Processed {
+            let amount = self.transactions.get_transaction_value(&dispute.tx).await?;
             self.transactions
                 .store_transaction_status(dispute.tx, TransactionStatus::Disputed)
                 .await?;
@@ -98,8 +97,8 @@ where
                 .update(
                     &dispute.client,
                     ClientUpdate::Dispute {
-                        available_decrease: value.clone(),
-                        held_increase: value,
+                        available_decrease: amount.clone(),
+                        held_increase: amount,
                     },
                 )
                 .await?;
@@ -112,10 +111,10 @@ where
             .transactions
             .get_transaction_status(&resolve.tx)
             .await?;
-        let amount = self.transactions.get_transaction_value(&resolve.tx).await?;
 
         // only process resolution if transaction is in a disputed state
         if state == TransactionStatus::Disputed {
+            let amount = self.transactions.get_transaction_value(&resolve.tx).await?;
             self.transactions
                 .store_transaction_status(resolve.tx, TransactionStatus::Resolved)
                 .await?;
@@ -133,7 +132,31 @@ where
     }
 
     async fn process_chargeback(&mut self, chargeback: Chargeback) -> EngineResult {
-        todo!()
+        let state = self
+            .transactions
+            .get_transaction_status(&chargeback.tx)
+            .await?;
+
+        // only process chargeback if transaction is currently disputed
+        if state == TransactionStatus::Disputed {
+            let amount = self
+                .transactions
+                .get_transaction_value(&chargeback.tx)
+                .await?;
+            self.transactions
+                .store_transaction_status(chargeback.tx, TransactionStatus::ChargedBack)
+                .await?;
+            self.clients
+                .update(
+                    &chargeback.client,
+                    ClientUpdate::Chargeback {
+                        held_decrease: amount.clone(),
+                        total_decrease: amount,
+                    },
+                )
+                .await?;
+        }
+        Ok(())
     }
 }
 
