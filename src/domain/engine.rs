@@ -3,7 +3,7 @@ use crate::domain::model::{
 };
 use crate::domain::ports::{
     ClientRepository, ClientUpdate, Engine, EngineConfig, EngineErrors, EngineResult,
-    TransactionsRepository,
+    TransactionRepositoryErrors, TransactionsRepository,
 };
 use async_trait::async_trait;
 use futures::prelude::stream::BoxStream;
@@ -47,21 +47,26 @@ where
     T: EngineConfig,
 {
     async fn process_deposit(&mut self, deposit: Deposit) -> EngineResult {
-        self.transactions
-            .store_transaction_value(deposit.tx, deposit.amount.clone())
-            .await?;
-        self.transactions
-            .store_transaction_status(deposit.tx, TransactionStatus::Processed)
-            .await?;
-        self.clients
-            .update(
-                &deposit.client,
-                ClientUpdate::Deposit {
-                    available_increase: deposit.amount.clone(),
-                    total_increase: deposit.amount,
-                },
-            )
-            .await?;
+        if let Err(TransactionRepositoryErrors::TransactionNotFound(_)) =
+            self.transactions.get_transaction_status(&deposit.tx).await
+        {
+            self.transactions
+                .store_transaction_value(deposit.tx, deposit.amount.clone())
+                .await?;
+            self.transactions
+                .store_transaction_status(deposit.tx, TransactionStatus::Processed)
+                .await?;
+            self.clients
+                .update(
+                    &deposit.client,
+                    ClientUpdate::Deposit {
+                        available_increase: deposit.amount.clone(),
+                        total_increase: deposit.amount,
+                    },
+                )
+                .await?;
+        }
+
         Ok(())
     }
 

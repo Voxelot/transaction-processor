@@ -7,7 +7,9 @@ use crate::domain::model::{InputRecord, Transaction};
 use crate::domain::ports::{Engine, EngineConfig};
 use clap::{App, Arg};
 use csv::{ReaderBuilder, Trim};
+use futures::{StreamExt, TryStreamExt};
 use std::convert::TryInto;
+use std::io;
 use std::path::PathBuf;
 
 #[tokio::main]
@@ -27,11 +29,12 @@ async fn main() {
         // We shouldn't reach this due to usage of `.required(true)` above
         .expect("No transactions file input provided.");
 
-    let engine = TransactionEngine::<InMemoryEngineDeps>::default();
-    process_file(file, engine).await
+    let mut engine = TransactionEngine::<InMemoryEngineDeps>::default();
+    process_file(file, &mut engine).await;
+    print_clients_csv(&mut engine).await;
 }
 
-async fn process_file<C: EngineConfig>(file_path: &str, mut engine: TransactionEngine<C>) {
+async fn process_file<C: EngineConfig>(file_path: &str, engine: &mut TransactionEngine<C>) {
     let mut rdr = ReaderBuilder::new()
         .trim(Trim::All)
         .from_path(PathBuf::from(file_path))
@@ -43,6 +46,15 @@ async fn process_file<C: EngineConfig>(file_path: &str, mut engine: TransactionE
             .process_transaction(transaction.clone())
             .await
             .unwrap();
-        println!("processed {:?}", transaction);
     }
+}
+
+async fn print_clients_csv<C: EngineConfig>(engine: &mut TransactionEngine<C>) {
+    let mut wtr = csv::Writer::from_writer(io::stdout());
+
+    let mut clients = engine.get_clients().await.unwrap();
+    while let Some(c) = clients.next().await {
+        wtr.serialize(c.unwrap()).unwrap();
+    }
+    wtr.flush().unwrap();
 }

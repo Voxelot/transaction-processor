@@ -57,7 +57,13 @@ impl ClientRepository for InMemoryClientRepository {
         let mut inner = self.0.write().unwrap();
         // insert default client if none exist yet
         if !inner.contains_key(id) {
-            inner.insert(*id, Default::default());
+            inner.insert(
+                *id,
+                Client {
+                    id: *id,
+                    ..Default::default()
+                },
+            );
         }
         let mut client = inner.get_mut(id).unwrap();
         match update {

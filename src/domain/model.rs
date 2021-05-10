@@ -160,6 +160,10 @@ impl TryFrom<InputRecord> for Transaction {
                 client: ClientId::from_str(value.client.as_str()).map_err(|_| ())?,
                 tx: TransactionId::from_str(value.tx.as_str()).map_err(|_| ())?,
             }),
+            "chargeback" => Transaction::Chargeback(Chargeback {
+                client: ClientId::from_str(value.client.as_str()).map_err(|_| ())?,
+                tx: TransactionId::from_str(value.tx.as_str()).map_err(|_| ())?,
+            }),
             _ => return Err(()),
         };
         Ok(transaction)
