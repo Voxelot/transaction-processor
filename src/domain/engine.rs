@@ -37,7 +37,7 @@ where
             .clients
             .get_all()
             .await?
-            .map_err(|e| EngineErrors::ClientError(e))
+            .map_err(EngineErrors::ClientError)
             .boxed())
     }
 }

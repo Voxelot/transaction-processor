@@ -7,7 +7,7 @@ use crate::domain::model::{InputRecord, Transaction};
 use crate::domain::ports::{Engine, EngineConfig};
 use clap::{App, Arg};
 use csv::{ReaderBuilder, Trim};
-use futures::{StreamExt, TryStreamExt};
+use futures::StreamExt;
 use std::convert::TryInto;
 use std::io;
 use std::path::PathBuf;

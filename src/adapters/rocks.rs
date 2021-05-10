@@ -1,9 +1,10 @@
+/// TODO: Was starting to try implementing the data layer in RocksDB, needs more work though
 use crate::domain::model::{Client, ClientId};
 use crate::domain::ports::{ClientRepository, ClientRepositoryErrors, ClientUpdate};
+#[allow(unused_imports)]
 use bincode::{deserialize, serialize};
 use futures::prelude::stream::BoxStream;
-use rocksdb::{ColumnFamily, DB};
-use std::borrow::BorrowMut;
+use rocksdb::DB;
 use std::env::temp_dir;
 use std::sync::{Arc, RwLock};
 
@@ -13,9 +14,13 @@ pub struct RocksDb {
     db: Arc<RwLock<DB>>,
 }
 
+#[allow(dead_code)]
 impl RocksDb {
     fn init() -> Self {
-        let db = Arc::new(RwLock::new(DB::open_default("_test_path").unwrap()));
+        let mut path = temp_dir();
+        path.push(rand::random::<u16>().to_string());
+
+        let db = Arc::new(RwLock::new(DB::open_default(path).unwrap()));
         db.write()
             .unwrap()
             .create_cf(CLIENT_CF, &Default::default())
@@ -25,6 +30,7 @@ impl RocksDb {
     }
 }
 
+#[allow(dead_code)]
 #[async_trait::async_trait]
 impl ClientRepository for RocksDb {
     async fn get_all(
@@ -47,8 +53,8 @@ impl ClientRepository for RocksDb {
             .get_cf(client_cf, client_id_bytes)
             .map_err(|e| ClientRepositoryErrors::AdapterError(e.into()))
             .and_then(|result| {
-                let bytes = result
-                    .ok_or_else(|| ClientRepositoryErrors::ClientNotFound(client_id.clone()))?;
+                let bytes =
+                    result.ok_or_else(|| ClientRepositoryErrors::ClientNotFound(*client_id))?;
                 let client: Client = bincode::deserialize(bytes.as_slice()).unwrap();
                 Ok(client)
             })
@@ -73,8 +79,8 @@ impl ClientRepository for RocksDb {
 
     async fn update(
         &mut self,
-        id: &ClientId,
-        update: ClientUpdate,
+        _: &ClientId,
+        _: ClientUpdate,
     ) -> Result<(), ClientRepositoryErrors> {
         todo!()
     }
@@ -89,14 +95,15 @@ mod tests {
     #[tokio::test]
     async fn can_insert_client() {
         let mut rocks = RocksDb::init();
-        rocks.insert(Default::default()).await;
-        let client = rocks.get(&ClientId(0)).await.unwrap();
 
+        rocks.insert(Default::default()).await;
+
+        let client = rocks.get(&ClientId(0)).await.unwrap();
         assert_eq!(client, Client::default())
     }
 
     #[test]
-    fn can_roundtrip_client() {
+    fn can_bincode_roundtrip_client() {
         let client = Client::default();
         let serialized = bincode::serialize(&client).unwrap();
         let deserialize: Client = bincode::deserialize(&serialized).unwrap();

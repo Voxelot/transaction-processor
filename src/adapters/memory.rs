@@ -11,6 +11,7 @@ use futures::stream::{self, StreamExt};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
+/// Constraining the deps to the appropriate concrete impls to run the engine with in-memory storage
 #[derive(Default)]
 pub struct InMemoryEngineDeps;
 
