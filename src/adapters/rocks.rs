@@ -97,9 +97,9 @@ mod tests {
 
     #[test]
     fn can_roundtrip_client() {
-        let client = 4u8;
+        let client = Client::default();
         let serialized = bincode::serialize(&client).unwrap();
-        let deserialize: u8 = bincode::deserialize(&serialized).unwrap();
+        let deserialize: Client = bincode::deserialize(&serialized).unwrap();
         assert_eq!(client, deserialize);
     }
 }

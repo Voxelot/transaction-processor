@@ -12,18 +12,18 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 #[derive(Default)]
-pub struct TestEngineDeps;
+pub struct InMemoryEngineDeps;
 
-impl EngineConfig for TestEngineDeps {
-    type ClientRepository = FakeClientRepository;
-    type TransactionRepository = FakeTransactionRepository;
+impl EngineConfig for InMemoryEngineDeps {
+    type ClientRepository = InMemoryClientRepository;
+    type TransactionRepository = InMemoryTransactionRepository;
 }
 
 #[derive(Clone, Default)]
-pub struct FakeClientRepository(Arc<RwLock<HashMap<ClientId, Client>>>);
+pub struct InMemoryClientRepository(Arc<RwLock<HashMap<ClientId, Client>>>);
 
 #[async_trait]
-impl ClientRepository for FakeClientRepository {
+impl ClientRepository for InMemoryClientRepository {
     async fn get_all(
         &self,
     ) -> Result<BoxStream<'static, Result<Client, ClientRepositoryErrors>>, ClientRepositoryErrors>
@@ -103,17 +103,17 @@ impl ClientRepository for FakeClientRepository {
 }
 
 #[derive(Clone, Default)]
-pub struct FakeTransactionRepository(Arc<RwLock<FakeInnerTransactionRepository>>);
+pub struct InMemoryTransactionRepository(Arc<RwLock<InnerTransactionRepository>>);
 
 // use inner wrapper so Arc<RwLock<>> can cover multiple hashmaps
 #[derive(Default)]
-struct FakeInnerTransactionRepository {
+struct InnerTransactionRepository {
     transaction_status: HashMap<TransactionId, TransactionStatus>,
     transaction_value: HashMap<TransactionId, AmountInMinorUnits>,
 }
 
 #[async_trait]
-impl TransactionsRepository for FakeTransactionRepository {
+impl TransactionsRepository for InMemoryTransactionRepository {
     async fn get_transaction_status(
         &self,
         transaction_id: &TransactionId,
@@ -155,7 +155,7 @@ impl TransactionsRepository for FakeTransactionRepository {
     }
 }
 
-impl FakeInnerTransactionRepository {
+impl InnerTransactionRepository {
     fn get_transaction_status(
         &self,
         transaction_id: &TransactionId,

@@ -1,4 +1,6 @@
-use crate::adapters::memory::{FakeClientRepository, FakeTransactionRepository, TestEngineDeps};
+use crate::adapters::memory::{
+    InMemoryClientRepository, InMemoryEngineDeps, InMemoryTransactionRepository,
+};
 use crate::domain::engine::TransactionEngine;
 use crate::domain::model::{
     AmountInMinorUnits, Client, ClientId, TransactionId, TransactionStatus,
@@ -20,15 +22,15 @@ pub fn test_client(amount: AmountInMinorUnits) -> Client {
 }
 
 pub struct TestContext {
-    pub engine: TransactionEngine<TestEngineDeps>,
-    pub client_repo: FakeClientRepository,
-    pub transaction_repo: FakeTransactionRepository,
+    pub engine: TransactionEngine<InMemoryEngineDeps>,
+    pub client_repo: InMemoryClientRepository,
+    pub transaction_repo: InMemoryTransactionRepository,
 }
 
 impl TestContext {
     pub fn new() -> Self {
-        let client_repo = FakeClientRepository::default();
-        let transaction_repo = FakeTransactionRepository::default();
+        let client_repo = InMemoryClientRepository::default();
+        let transaction_repo = InMemoryTransactionRepository::default();
 
         let engine = TransactionEngine {
             clients: client_repo.clone(),
