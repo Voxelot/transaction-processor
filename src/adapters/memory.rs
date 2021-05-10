@@ -132,7 +132,8 @@ impl TransactionsRepository for InMemoryTransactionRepository {
         self.0
             .write()
             .unwrap()
-            .store_transaction_status(transaction_id, transaction_status)
+            .store_transaction_status(transaction_id, transaction_status);
+        Ok(())
     }
 
     async fn get_transaction_value(
@@ -163,18 +164,17 @@ impl InnerTransactionRepository {
         self.transaction_status
             .get(transaction_id)
             .cloned()
-            .ok_or_else(|| TransactionRepositoryErrors::TransactionNotFound(transaction_id.clone()))
+            .ok_or_else(|| TransactionRepositoryErrors::TransactionNotFound(*transaction_id))
     }
 
     fn store_transaction_status(
         &mut self,
         transaction_id: TransactionId,
         transaction_status: TransactionStatus,
-    ) -> Result<(), TransactionRepositoryErrors> {
+    ) {
         let _ = self
             .transaction_status
             .insert(transaction_id, transaction_status);
-        Ok(())
     }
 
     fn store_transaction_value(

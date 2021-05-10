@@ -1,12 +1,14 @@
 mod adapters;
 mod domain;
 
+use crate::adapters::memory::InMemoryEngineDeps;
 use crate::domain::engine::TransactionEngine;
 use crate::domain::model::{InputRecord, Transaction};
+use crate::domain::ports::{Engine, EngineConfig};
 use clap::{App, Arg};
 use csv::{ReaderBuilder, Trim};
-use std::convert::{TryFrom, TryInto};
-use std::path::{Path, PathBuf};
+use std::convert::TryInto;
+use std::path::PathBuf;
 
 #[tokio::main]
 async fn main() {
@@ -25,10 +27,11 @@ async fn main() {
         // We shouldn't reach this due to usage of `.required(true)` above
         .expect("No transactions file input provided.");
 
-    process_file(file).await
+    let engine = TransactionEngine::<InMemoryEngineDeps>::default();
+    process_file(file, engine).await
 }
 
-async fn process_file(file_path: &str) {
+async fn process_file<C: EngineConfig>(file_path: &str, mut engine: TransactionEngine<C>) {
     let mut rdr = ReaderBuilder::new()
         .trim(Trim::All)
         .from_path(PathBuf::from(file_path))
@@ -36,6 +39,10 @@ async fn process_file(file_path: &str) {
     for result in rdr.deserialize() {
         let record: InputRecord = result.unwrap();
         let transaction: Transaction = record.try_into().unwrap();
-        println!("{:?}", transaction);
+        engine
+            .process_transaction(transaction.clone())
+            .await
+            .unwrap();
+        println!("processed {:?}", transaction);
     }
 }

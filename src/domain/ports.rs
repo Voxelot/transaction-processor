@@ -105,8 +105,6 @@ pub trait TransactionsRepository {
 
 #[derive(Error, Debug)]
 pub enum TransactionRepositoryErrors {
-    #[error("Transaction already exists {0:?}")]
-    DuplicateTransaction(TransactionId),
     #[error("Transaction not found {0:?}")]
     TransactionNotFound(TransactionId),
     // used to capture errors such as connectivity issues with a database
