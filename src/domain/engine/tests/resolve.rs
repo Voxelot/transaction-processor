@@ -59,7 +59,7 @@ async fn resolve_does_not_affect_available_funds_when_transaction_not_disputed()
     let starting_available_amount = AmountInMinorUnits::from(100);
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(Client {
+        .insert(Client {
             id: TEST_CLIENT_ID,
             available: starting_available_amount.clone(),
             held: AmountInMinorUnits::from(0),
@@ -98,7 +98,7 @@ async fn resolve_does_not_affect_held_funds_when_transaction_not_disputed() {
     let starting_available_amount = AmountInMinorUnits::from(100);
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(Client {
+        .insert(Client {
             id: TEST_CLIENT_ID,
             available: starting_available_amount.clone(),
             held: AmountInMinorUnits::from(0),
@@ -137,7 +137,7 @@ async fn resolve_does_not_increase_available_funds_when_dispute_already_resolved
     let starting_available_amount = AmountInMinorUnits::from(100);
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(Client {
+        .insert(Client {
             id: TEST_CLIENT_ID,
             available: starting_available_amount.clone(),
             held: AmountInMinorUnits::from(0),
@@ -176,7 +176,7 @@ async fn resolve_does_not_decrease_held_funds_when_dispute_already_resolved() {
     let starting_available_amount = AmountInMinorUnits::from(100);
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(Client {
+        .insert(Client {
             id: TEST_CLIENT_ID,
             available: starting_available_amount.clone(),
             held: AmountInMinorUnits::from(500),
@@ -215,7 +215,7 @@ async fn resolve_does_not_increase_available_funds_when_already_charged_back() {
     let disputed_amount = AmountInMinorUnits::from(100);
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(Client {
+        .insert(Client {
             id: TEST_CLIENT_ID,
             available: AmountInMinorUnits::from(0),
             held: AmountInMinorUnits::from(0),
@@ -255,7 +255,7 @@ async fn resolve_does_not_decrease_held_funds_when_already_charged_back() {
     let held_amount = AmountInMinorUnits::from(200);
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(Client {
+        .insert(Client {
             id: TEST_CLIENT_ID,
             available: AmountInMinorUnits::from(0),
             held: held_amount.clone(),

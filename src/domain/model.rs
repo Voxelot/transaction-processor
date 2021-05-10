@@ -2,13 +2,13 @@ use bigdecimal::BigDecimal;
 use std::ops::{Add, Sub};
 
 // owned primitives
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
 pub struct ClientId(pub(crate) u16);
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Hash)]
 pub struct TransactionId(pub(crate) u32);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AmountInMinorUnits(BigDecimal);
 
 impl From<u64> for AmountInMinorUnits {
@@ -34,7 +34,7 @@ impl Sub for AmountInMinorUnits {
 }
 
 // high level objects
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Client {
     pub(crate) id: ClientId,
     pub(crate) available: AmountInMinorUnits,

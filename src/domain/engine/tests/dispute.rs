@@ -9,7 +9,7 @@ async fn dispute_reduces_available_funds_by_transaction_amount() {
     // test setup
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(test_client(AmountInMinorUnits::from(1000)))
+        .insert(test_client(AmountInMinorUnits::from(1000)))
         .await
         .unwrap();
     ctx.transaction_repo
@@ -40,7 +40,7 @@ async fn dispute_increases_held_funds_by_transaction_amount() {
     // test setup
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(test_client(AmountInMinorUnits::from(1000)))
+        .insert(test_client(AmountInMinorUnits::from(1000)))
         .await
         .unwrap();
     ctx.transaction_repo
@@ -71,7 +71,7 @@ async fn dispute_does_not_change_total_funds() {
     // test setup
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(test_client(AmountInMinorUnits::from(1000)))
+        .insert(test_client(AmountInMinorUnits::from(1000)))
         .await
         .unwrap();
     ctx.transaction_repo
@@ -102,7 +102,7 @@ async fn dispute_changes_transaction_status() {
     // test setup
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(test_client(AmountInMinorUnits::from(100)))
+        .insert(test_client(AmountInMinorUnits::from(100)))
         .await
         .unwrap();
     ctx.transaction_repo
@@ -133,7 +133,7 @@ async fn dispute_does_not_change_available_funds_if_txn_already_disputed() {
     // test setup
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(Client {
+        .insert(Client {
             id: TEST_CLIENT_ID,
             available: AmountInMinorUnits::from(100),
             held: AmountInMinorUnits::from(50),
@@ -170,7 +170,7 @@ async fn dispute_does_not_change_held_funds_if_txn_already_disputed() {
     // test setup
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(Client {
+        .insert(Client {
             id: TEST_CLIENT_ID,
             available: AmountInMinorUnits::from(100),
             held: AmountInMinorUnits::from(50),

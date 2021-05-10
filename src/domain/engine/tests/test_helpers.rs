@@ -3,8 +3,8 @@ use crate::domain::model::{
     AmountInMinorUnits, Client, ClientId, TransactionId, TransactionStatus,
 };
 use crate::domain::ports::{
-    ClientRepository, ClientRepositoryErrors, Engine, EngineConfig, TransactionRepositoryErrors,
-    TransactionsRepository,
+    ClientRepository, ClientRepositoryErrors, ClientUpdate, Engine, EngineConfig,
+    TransactionRepositoryErrors, TransactionsRepository,
 };
 use async_trait::async_trait;
 use futures::prelude::stream::BoxStream;
@@ -69,7 +69,7 @@ impl TestContext {
 
     pub async fn with_deposit(&mut self, amount: AmountInMinorUnits, held: AmountInMinorUnits) {
         self.client_repo
-            .update_client(Client {
+            .insert(Client {
                 id: TEST_CLIENT_ID,
                 available: amount.clone(),
                 held: held.clone(),
@@ -97,7 +97,7 @@ impl TestContext {
         disputed_amount: AmountInMinorUnits,
     ) {
         self.client_repo
-            .update_client(Client {
+            .insert(Client {
                 id: TEST_CLIENT_ID,
                 available: available_amount.clone(),
                 held: disputed_amount.clone(),
@@ -124,7 +124,7 @@ impl TestContext {
         held_amount: AmountInMinorUnits,
     ) {
         self.client_repo
-            .update_client(Client {
+            .insert(Client {
                 id: TEST_CLIENT_ID,
                 available: available_amount.clone(),
                 held: held_amount.clone(),
@@ -146,39 +146,65 @@ impl TestContext {
 }
 
 #[derive(Clone, Default)]
-pub struct FakeClientRepository(Arc<RwLock<FakeInnerClientRepository>>);
-
-#[derive(Default)]
-struct FakeInnerClientRepository {
-    clients: HashMap<ClientId, Client>,
-}
+pub struct FakeClientRepository(Arc<RwLock<HashMap<ClientId, Client>>>);
 
 #[async_trait]
 impl ClientRepository for FakeClientRepository {
-    async fn get_clients(
+    async fn get_all(
         &self,
     ) -> Result<BoxStream<'static, Result<Client, ClientRepositoryErrors>>, ClientRepositoryErrors>
     {
-        self.0.read().unwrap().get_clients()
-    }
-
-    async fn update_client(&mut self, client: Client) -> Result<(), ClientRepositoryErrors> {
-        self.0.write().unwrap().update_client(client)
-    }
-}
-
-impl FakeInnerClientRepository {
-    fn get_clients(
-        &self,
-    ) -> Result<BoxStream<'static, Result<Client, ClientRepositoryErrors>>, ClientRepositoryErrors>
-    {
-        let clients: Vec<Client> = self.clients.values().cloned().collect();
+        let inner = self.0.read().unwrap();
+        let clients: Vec<Client> = inner.values().cloned().collect();
         let stream = stream::iter(clients.into_iter().map(Ok));
         Ok(stream.boxed())
     }
 
-    fn update_client(&mut self, client: Client) -> Result<(), ClientRepositoryErrors> {
-        let _ = self.clients.insert(client.id, client);
+    async fn get(&self, client_id: &ClientId) -> Result<Client, ClientRepositoryErrors> {
+        self.0
+            .read()
+            .unwrap()
+            .get(client_id)
+            .cloned()
+            .ok_or_else(|| ClientRepositoryErrors::ClientNotFound(*client_id))
+    }
+
+    async fn insert(&mut self, client: Client) -> Result<(), ClientRepositoryErrors> {
+        let mut inner = self.0.write().unwrap();
+        let _ = inner.insert(client.id, client);
+        Ok(())
+    }
+
+    async fn update(
+        &mut self,
+        id: &ClientId,
+        update: ClientUpdate,
+    ) -> Result<(), ClientRepositoryErrors> {
+        let mut inner = self.0.write().unwrap();
+        // insert default client if none exist yet
+        if !inner.contains_key(id) {
+            inner.insert(*id, Default::default());
+        }
+        let mut client = inner.get_mut(id).unwrap();
+        match update {
+            ClientUpdate::Deposit {
+                available_increase,
+                total_increase,
+            } => {
+                client.available = client.available.clone() + available_increase;
+                client.total = client.total.clone() + total_increase;
+            }
+            ClientUpdate::Withdrawal {
+                available_decrease,
+                total_decrease,
+            } => {
+                client.available = client.available.clone() - available_decrease;
+                client.total = client.total.clone() - total_decrease;
+            }
+            ClientUpdate::Dispute { .. } => {}
+            ClientUpdate::Resolve { .. } => {}
+            ClientUpdate::Chargeback { .. } => {}
+        }
         Ok(())
     }
 }
@@ -186,6 +212,7 @@ impl FakeInnerClientRepository {
 #[derive(Clone, Default)]
 pub struct FakeTransactionRepository(Arc<RwLock<FakeInnerTransactionRepository>>);
 
+// use inner wrapper so Arc<RwLock<>> can cover multiple hashmaps
 #[derive(Default)]
 struct FakeInnerTransactionRepository {
     transaction_status: HashMap<TransactionId, TransactionStatus>,

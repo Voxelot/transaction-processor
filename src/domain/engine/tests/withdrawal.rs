@@ -12,7 +12,7 @@ async fn successful_withdrawal_decreases_client_available_funds() {
     // test setup
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(test_client(AmountInMinorUnits::from(100)))
+        .insert(test_client(AmountInMinorUnits::from(100)))
         .await
         .unwrap();
 
@@ -36,7 +36,7 @@ async fn successful_withdrawal_decreases_client_total_funds() {
     // test setup
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(test_client(AmountInMinorUnits::from(100)))
+        .insert(test_client(AmountInMinorUnits::from(100)))
         .await
         .unwrap();
 
@@ -60,7 +60,7 @@ async fn when_available_funds_are_too_low_withdrawal_does_not_effect_available_f
     // test setup
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(test_client(AmountInMinorUnits::from(100)))
+        .insert(test_client(AmountInMinorUnits::from(100)))
         .await
         .unwrap();
 
@@ -84,7 +84,7 @@ async fn when_available_funds_are_too_low_withdrawal_does_not_effect_total_funds
     // test setup
     let mut ctx = TestContext::new();
     ctx.client_repo
-        .update_client(test_client(AmountInMinorUnits::from(100)))
+        .insert(test_client(AmountInMinorUnits::from(100)))
         .await
         .unwrap();
 
