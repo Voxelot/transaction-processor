@@ -96,7 +96,7 @@ mod tests {
     async fn can_insert_client() {
         let mut rocks = RocksDb::init();
 
-        rocks.insert(Default::default()).await;
+        rocks.insert(Default::default()).await.unwrap();
 
         let client = rocks.get(&ClientId(0)).await.unwrap();
         assert_eq!(client, Client::default())

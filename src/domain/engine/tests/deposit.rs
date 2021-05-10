@@ -50,7 +50,8 @@ async fn deposit_does_not_increase_available_funds_if_already_processed() {
     let deposit_amount = AmountInMinorUnits::from(100);
     let mut ctx = TestContext::new();
 
-    ctx.with_deposit(deposit_amount.clone(), AmountInMinorUnits::from(0));
+    ctx.with_deposit(deposit_amount.clone(), AmountInMinorUnits::from(0))
+        .await;
 
     // test subject
     ctx.engine
@@ -73,7 +74,8 @@ async fn deposit_does_not_increase_total_funds_if_already_processed() {
     let deposit_amount = AmountInMinorUnits::from(100);
     let mut ctx = TestContext::new();
 
-    ctx.with_deposit(deposit_amount.clone(), AmountInMinorUnits::from(0));
+    ctx.with_deposit(deposit_amount.clone(), AmountInMinorUnits::from(0))
+        .await;
 
     // test subject
     ctx.engine
