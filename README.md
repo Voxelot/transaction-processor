@@ -6,7 +6,7 @@ This is a small demo project for handling various types of financial transaction
 For information about running the tool use:
 `cargo run -- -h`
 
-Tests are largely broken down into units. This allows each state transition of importance to be verified quickly without 
+Testing is primarily accomplished via unit-tests. This allows each state transition of importance to be verified quickly without 
 too much setup. The project is organized using hexagonal "ports and adapters" architecture to improve maintainability, 
 testability, and flexibility to expand in the future while keeping the core business rules intact. For example, it 
 wouldn't require any modifications to the domain in order to allow this engine to process web requests and
