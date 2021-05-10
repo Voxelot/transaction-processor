@@ -1,8 +1,15 @@
+mod adapters;
 mod domain;
 
+use crate::domain::engine::TransactionEngine;
+use crate::domain::model::{InputRecord, Transaction};
 use clap::{App, Arg};
+use csv::{ReaderBuilder, Trim};
+use std::convert::{TryFrom, TryInto};
+use std::path::{Path, PathBuf};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let matches = App::new("Simple Payment Engine")
         .version("1.0")
         .author("Brandon K. <brandonkite92@gmail.com>")
@@ -18,5 +25,17 @@ fn main() {
         // We shouldn't reach this due to usage of `.required(true)` above
         .expect("No transactions file input provided.");
 
-    println!("{}", file)
+    process_file(file).await
+}
+
+async fn process_file(file_path: &str) {
+    let mut rdr = ReaderBuilder::new()
+        .trim(Trim::All)
+        .from_path(PathBuf::from(file_path))
+        .unwrap();
+    for result in rdr.deserialize() {
+        let record: InputRecord = result.unwrap();
+        let transaction: Transaction = record.try_into().unwrap();
+        println!("{:?}", transaction);
+    }
 }
